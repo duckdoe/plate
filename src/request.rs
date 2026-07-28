@@ -1,18 +1,34 @@
 use std::collections::HashMap;
+use std::fmt;
 
-#[derive(Debug)]
 pub enum HTTPMethod {
     GET,
     POST,
 }
 
-#[derive(Debug)]
+impl fmt::Display for HTTPMethod {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            HTTPMethod::GET => write!(f, "GET"),
+            HTTPMethod::POST => write!(f, "POST"),
+        }
+    }
+}
+
 pub enum HTTPVersion {
     HTTP11,
     HTTP10,
 }
 
-#[derive(Debug)]
+impl fmt::Display for HTTPVersion {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            HTTPVersion::HTTP11 => write!(f, "1.1"),
+            HTTPVersion::HTTP10 => write!(f, "1.0"),
+        }
+    }
+}
+
 pub struct Request {
     pub method: HTTPMethod,
     pub path: String,
@@ -41,6 +57,16 @@ impl Request {
             headers,
             body,
         }
+    }
+}
+
+impl fmt::Display for Request {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Request (\nmethod: {},\npath: {},\nversion: {}\nheaders: {:#?}\nbody: {:#?}\n)",
+            self.method, self.path, self.version, self.headers, self.body
+        )
     }
 }
 

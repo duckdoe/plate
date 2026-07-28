@@ -5,9 +5,6 @@ mod response;
 mod server;
 
 fn main() {
-    let plate = Server {
-        name: String::from("fortune"),
-    };
-
+    let plate = Server::new("fortune");
     plate.listen("127.0.0.1:8001");
 }
