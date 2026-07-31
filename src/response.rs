@@ -1,12 +1,14 @@
-use crate::request::HTTPVersion;
+use crate::request::{HTTPVersion, Request};
 use core::fmt;
 use std::collections::HashMap;
+use std::io::Write;
+use std::net::TcpStream;
 
-pub struct Response {
-    pub version: HTTPVersion,
-    pub status_code: u16,
-    pub body: Option<String>,
-    pub headers: HashMap<String, String>,
+pub(crate) struct Response {
+    pub(crate) version: HTTPVersion,
+    pub(crate) status_code: u16,
+    pub(crate) body: Option<String>,
+    pub(crate) headers: HashMap<String, String>,
 }
 
 impl Response {
@@ -125,4 +127,29 @@ impl fmt::Display for Response {
 
         write!(f, "{}", response_str)
     }
+}
+
+pub fn write_response(
+    mut stream: TcpStream,
+    req: Request,
+    body: String,
+    status_code: u16,
+    content_type: String,
+) {
+    let headers = HashMap::from([
+        (String::from("Content-Type"), content_type),
+        (String::from("Content-Length"), body.len().to_string()),
+        (String::from("Connection"), String::from("close")),
+    ]);
+
+    let response = Response::new(Some(body.to_string()), status_code, headers, req.version);
+    let res = response.to_string();
+    let res = stream.write_all(res.as_bytes());
+
+    match res {
+        Ok(_res) => {
+            println!("{} {} {}\n", req.method, req.path, response.status_code)
+        }
+        Err(_e) => println!("Failed to write a response"),
+    };
 }
