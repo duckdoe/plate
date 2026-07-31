@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 
+#[derive(Hash, Eq, PartialEq)]
 pub enum HTTPMethod {
     GET,
     POST,
