@@ -1,14 +1,16 @@
 use std::{
-<<<<<<< HEAD
     collections::HashMap,
+    fs,
     io::{Read, Write},
     net::{TcpListener, TcpStream},
+    path::Path,
 };
 
 use crate::{
     handler::{Handler, Response, Router},
     request::HTTPMethod,
 };
+
 use crate::{request::parse_request, response::write_response};
 
 pub struct Server {
@@ -29,8 +31,6 @@ impl Server {
 
         let mut s = String::new();
         let mut buffer = [0; 8192];
-
-        // TODO: make sure all data is read from the client before sending a response.
 
         let mut data = stream.read(&mut buffer);
         let mut len = 0;
@@ -59,7 +59,6 @@ impl Server {
         }
 
         // Parse the headers and check if we need a body.
-
         let mut req_parts = str::from_utf8(&buffer[..len])
             .expect("Unable to read from buffer")
             .split("\r\n");
@@ -112,8 +111,7 @@ impl Server {
 
                         match response {
                             Ok(res) => {
-                                let route_type = res.1;
-                                let res = res.0(&req);
+                                let res = res(&req);
 
                                 write_response(
                                     stream,
@@ -125,52 +123,115 @@ impl Server {
                             }
 
                             Err(_err) => {
-                                write_response(
-                                    stream,
-                                    req,
-                                    "Page not Found".to_string(),
-                                    404,
-                                    content_type,
-                                );
+                                // Fallback to files if no register api
+
+                                let root = std::fs::canonicalize(&self.router.static_dir);
+
+                                let root_str;
+                                match root {
+                                    Ok(req) => {
+                                        root_str = req;
+                                    }
+                                    Err(_e) => {
+                                        write_response(
+                                            stream,
+                                            req,
+                                            "Not Found".to_string(),
+                                            404,
+                                            content_type,
+                                        );
+
+                                        return;
+                                    }
+                                };
+
+                                let mut path = req.path.as_str();
+
+                                if path == "/" {
+                                    path = "index.html";
+                                }
+
+                                let requested = root_str.join(path.trim_start_matches('/'));
+                                let requested = std::fs::canonicalize(requested);
+
+                                let file_requested;
+
+                                match requested {
+                                    Ok(req) => {
+                                        file_requested = req;
+                                    }
+                                    Err(_e) => {
+                                        write_response(
+                                            stream,
+                                            req,
+                                            "Not Found".to_string(),
+                                            404,
+                                            content_type,
+                                        );
+
+                                        return;
+                                    }
+                                };
+
+                                if !file_requested.starts_with(&root_str) {
+                                    // Reject it — attempted path traversal
+
+                                    write_response(
+                                        stream,
+                                        req,
+                                        "Permission Error".to_string(),
+                                        403,
+                                        content_type,
+                                    );
+
+                                    return;
+                                }
+
+                                let path = file_requested
+                                    .to_str()
+                                    .expect("Unable to parse into a string");
+
+                                if !Path::new(&path).exists() {
+                                    write_response(
+                                        stream,
+                                        req,
+                                        "Not Found".to_string(),
+                                        404,
+                                        content_type,
+                                    );
+                                } else {
+                                    let file =
+                                        path.split_once(".").expect("Unable to split file").1;
+
+                                    let content_type = match file {
+                                        "html" => "text/html",
+                                        "css" => "text/css",
+                                        "js" => "text/javascript",
+                                        "txt" => "text/plain",
+                                        _ => "application/octet-stream",
+                                    };
+
+                                    let body =
+                                        fs::read_to_string(path).expect("Could not read from file");
+
+                                    write_response(
+                                        stream,
+                                        req,
+                                        body,
+                                        200,
+                                        content_type.to_string(),
+                                    );
+                                }
                             }
                         }
                     }
 
-=======
-    io::Read,
-    net::{TcpListener, TcpStream},
-};
-
-use crate::request::parse_request;
-
-pub struct Server {
-    pub name: String,
-}
-
-impl Server {
-    fn handle_client(&self, mut stream: TcpStream) {
-        let mut s = String::new();
-        let mut buffer = [0; 512];
-        let data = stream.read(&mut buffer);
-
-        match data {
-            Ok(d) => {
-                s.push_str(str::from_utf8(&buffer[..d]).expect("Unable to read from buffer."));
-                let request = parse_request(s);
-
-                match request {
-                    Ok(req) => println!("{req:?}"),
->>>>>>> a91d242 (update: request parsing feature)
                     Err(_e) => {
                         println!("Some kind of error occured i can't explain but it happened.")
                     }
                 }
             }
-<<<<<<< HEAD
             Err(err) => println!("Connection failed: {err}"),
-=======
-            Err(_e) => println!(),
->>>>>>> a91d242 (update: request parsing feature)
         }
     }
 
@@ -194,12 +255,9 @@ impl Server {
             Err(e) => println!("Connection failed: {e}"),
         }
     }
-<<<<<<< HEAD
 
     pub fn get(&mut self, path: &str, handler: Handler) {
         let map = HashMap::from([(path.to_string(), handler)]);
         self.router.routes.insert(HTTPMethod::GET, map);
     }
-=======
->>>>>>> a91d242 (update: request parsing feature)
 }

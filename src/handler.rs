@@ -14,12 +14,8 @@ pub struct Reqeust {
 }
 
 pub(crate) struct Router {
+    pub(crate) static_dir: String,
     pub(crate) routes: HashMap<HTTPMethod, HashMap<String, Handler>>,
-}
-
-pub(crate) enum RouteType {
-    Api,
-    File,
 }
 
 pub(crate) enum RouterError {
@@ -40,6 +36,7 @@ impl Response {
 impl Router {
     pub fn new() -> Self {
         Self {
+            static_dir: String::from("./public"),
             routes: HashMap::new(),
         }
     }
@@ -49,21 +46,15 @@ impl Router {
         self.routes.insert(method, handler);
     }
 
-    pub fn look_up(
-        &self,
-        method: &HTTPMethod,
-        path: &str,
-    ) -> Result<(Handler, RouteType), RouterError> {
+    pub fn look_up(&self, method: &HTTPMethod, path: &str) -> Result<Handler, RouterError> {
         let routes = self.routes.get(method);
         let handler;
         match routes {
             Some(r) => {
-                // TODO: find a way to get the handler
-
                 let path_handler = r.get(path);
 
                 handler = match path_handler {
-                    Some(h) => Ok((*h, RouteType::Api)), // Using a default for now.
+                    Some(h) => Ok(*h), // Using a default for now.
                     None => Err(RouterError::NotFound),
                 };
             }
