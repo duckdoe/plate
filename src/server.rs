@@ -1,4 +1,5 @@
 use std::{
+<<<<<<< HEAD
     collections::HashMap,
     io::{Read, Write},
     net::{TcpListener, TcpStream},
@@ -135,12 +136,41 @@ impl Server {
                         }
                     }
 
+=======
+    io::Read,
+    net::{TcpListener, TcpStream},
+};
+
+use crate::request::parse_request;
+
+pub struct Server {
+    pub name: String,
+}
+
+impl Server {
+    fn handle_client(&self, mut stream: TcpStream) {
+        let mut s = String::new();
+        let mut buffer = [0; 512];
+        let data = stream.read(&mut buffer);
+
+        match data {
+            Ok(d) => {
+                s.push_str(str::from_utf8(&buffer[..d]).expect("Unable to read from buffer."));
+                let request = parse_request(s);
+
+                match request {
+                    Ok(req) => println!("{req:?}"),
+>>>>>>> a91d242 (update: request parsing feature)
                     Err(_e) => {
                         println!("Some kind of error occured i can't explain but it happened.")
                     }
                 }
             }
+<<<<<<< HEAD
             Err(err) => println!("Connection failed: {err}"),
+=======
+            Err(_e) => println!(),
+>>>>>>> a91d242 (update: request parsing feature)
         }
     }
 
@@ -164,9 +194,12 @@ impl Server {
             Err(e) => println!("Connection failed: {e}"),
         }
     }
+<<<<<<< HEAD
 
     pub fn get(&mut self, path: &str, handler: Handler) {
         let map = HashMap::from([(path.to_string(), handler)]);
         self.router.routes.insert(HTTPMethod::GET, map);
     }
+=======
+>>>>>>> a91d242 (update: request parsing feature)
 }

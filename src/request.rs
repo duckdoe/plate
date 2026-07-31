@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Hash, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum HTTPMethod {
     GET,
     POST,
@@ -16,6 +17,7 @@ impl fmt::Display for HTTPMethod {
     }
 }
 
+#[derive(Debug)]
 pub enum HTTPVersion {
     HTTP11,
     HTTP10,
@@ -30,6 +32,7 @@ impl fmt::Display for HTTPVersion {
     }
 }
 
+#[derive(Debug)]
 pub struct Request {
     pub method: HTTPMethod,
     pub path: String,
