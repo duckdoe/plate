@@ -1,13 +1,13 @@
 use std::{
     collections::HashMap,
     fs,
-    io::{Read, Write},
+    io::Read,
     net::{TcpListener, TcpStream},
     path::Path,
 };
 
 use crate::{
-    handler::{Handler, Response, Router},
+    handler::{Handler, Request, Router},
     request::HTTPMethod,
 };
 
@@ -33,33 +33,36 @@ impl Server {
         let mut buffer = [0; 8192];
 
         let mut data = stream.read(&mut buffer);
-        let mut len = 0;
 
         match data {
+            Ok(0) => {
+                println!("Connection closed unexpectedly, client did not send anything");
+                return;
+            }
+
             Ok(d) => {
-                len += d;
-                req.extend_from_slice(&buffer);
+                req.extend_from_slice(&buffer[..d]);
             }
             Err(ref e) => println!("Connection failed: {e}"),
         }
 
-        while !str::from_utf8(&buffer[..len])
+        while !str::from_utf8(&req[..req.len()])
             .expect("Unable to read from buffer")
             .contains("\r\n\r\n")
         {
             data = stream.read(&mut buffer);
 
             match data {
+                Ok(0) => break,
                 Ok(d) => {
-                    len += d;
-                    req.extend_from_slice(&buffer);
+                    req.extend_from_slice(&buffer[..d]);
                 }
                 Err(ref e) => println!("Connection failed: {e}"),
             };
         }
 
         // Parse the headers and check if we need a body.
-        let mut req_parts = str::from_utf8(&buffer[..len])
+        let mut req_parts = str::from_utf8(&req[..req.len()])
             .expect("Unable to read from buffer")
             .split("\r\n");
 
@@ -83,15 +86,15 @@ impl Server {
                 .trim()
                 .parse::<usize>()
                 .expect("Unable to parse content length");
-            let data_len = len + content_length;
+            let data_len = req.len() + content_length;
 
-            while data_len > len {
+            while data_len > req.len() {
                 data = stream.read(&mut buffer);
 
                 match data {
+                    Ok(0) => break,
                     Ok(d) => {
-                        len += d;
-                        req.extend_from_slice(&buffer);
+                        req.extend_from_slice(&buffer[..d]);
                     }
                     Err(ref e) => println!("Connection failed: {e}"),
                 }
@@ -99,12 +102,19 @@ impl Server {
         }
 
         match data {
-            Ok(d) => {
-                s.push_str(str::from_utf8(&req[..len]).expect("Unable to read from buffer."));
+            Ok(_d) => {
+                s.push_str(str::from_utf8(&req[..req.len()]).expect("Unable to read from buffer."));
                 let request = parse_request(s);
 
                 match request {
-                    Ok(req) => {
+                    Ok(req_ok) => {
+                        let req = Request::new(
+                            req_ok.method,
+                            req_ok.path,
+                            req_ok.version,
+                            req_ok.headers,
+                            req_ok.body,
+                        );
                         let content_type = String::from("text/plain");
 
                         let response = self.router.look_up(&req.method, req.path.as_str());

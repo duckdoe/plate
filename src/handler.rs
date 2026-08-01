@@ -1,16 +1,71 @@
-use std::{collections::HashMap, error::Error};
+use std::collections::HashMap;
 
-use crate::request::{HTTPMethod, Request, RequestError};
+use crate::request::{HTTPMethod, HTTPVersion};
 
 pub struct Response {
     pub body: String,
     pub status_code: u16,
 }
 
-pub struct Reqeust {
+#[allow(dead_code)]
+pub struct Request {
     pub method: HTTPMethod,
     pub path: String,
+    pub version: HTTPVersion,
+    pub headers: HashMap<String, String>,
+    pub body: Option<String>,
     pub args: HashMap<String, String>, // for query strings
+}
+
+impl Request {
+    pub fn new(
+        method: HTTPMethod,
+        path: String,
+        version: HTTPVersion,
+        headers: HashMap<String, String>,
+        body: Option<String>,
+    ) -> Self {
+        let mut args = HashMap::new();
+        let query_string = path.split_once("?");
+        let queries;
+
+        match query_string {
+            Some(query) => {
+                queries = query;
+            }
+
+            None => {
+                return Self {
+                    method,
+                    path,
+                    version,
+                    headers,
+                    body,
+                    args,
+                }
+            }
+        }
+
+        let mut pairs = queries.1.split("&");
+
+        while let Some(param) = pairs.next() {
+            let mut parts = param.split('=');
+
+            let key = parts.next().unwrap();
+            let value = parts.next().unwrap();
+
+            args.insert(key.to_string(), value.to_string());
+        }
+
+        Self {
+            method,
+            path: queries.0.to_string(),
+            version,
+            headers,
+            body,
+            args,
+        }
+    }
 }
 
 pub(crate) struct Router {

@@ -1,4 +1,5 @@
-use crate::request::{HTTPVersion, Request};
+use crate::handler::Request;
+use crate::request::HTTPVersion;
 use core::fmt;
 use std::collections::HashMap;
 use std::io::Write;
