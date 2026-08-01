@@ -5,6 +5,8 @@ use std::fmt;
 pub enum HTTPMethod {
     GET,
     POST,
+    DELETE,
+    PUT,
 }
 
 impl fmt::Display for HTTPMethod {
@@ -12,6 +14,8 @@ impl fmt::Display for HTTPMethod {
         match self {
             HTTPMethod::GET => write!(f, "GET"),
             HTTPMethod::POST => write!(f, "POST"),
+            HTTPMethod::DELETE => write!(f, "DELETE"),
+            HTTPMethod::PUT => write!(f, "PUT"),
         }
     }
 }
@@ -99,6 +103,7 @@ pub fn parse_request(request: String) -> Result<Request, RequestError> {
     let _http = version.next();
     let version = version.next().unwrap();
 
+    // Fix whatever this shit is.
     match method {
         "GET" => {
             let version = if version == "1.1" {
@@ -157,6 +162,70 @@ pub fn parse_request(request: String) -> Result<Request, RequestError> {
             }
 
             Ok(Request::new(HTTPMethod::POST, path, version, headers, body))
+        }
+        "DELETE" => {
+            let version = if version == "1.1" {
+                HTTPVersion::HTTP11
+            } else {
+                HTTPVersion::HTTP10
+            };
+
+            let mut body: Option<String> = None;
+
+            if headers.contains_key("Content-Length") {
+                let mut data = String::new();
+                let content_length = headers
+                    .get("Content-Length")
+                    .expect("Content-Length does not exist");
+
+                let content_length = content_length
+                    .trim()
+                    .parse::<usize>()
+                    .expect("Unable to parse content length");
+
+                while data.len() < content_length {
+                    data.push_str(req_parts.next().unwrap());
+                }
+
+                body = Some(data);
+            }
+
+            Ok(Request::new(
+                HTTPMethod::DELETE,
+                path,
+                version,
+                headers,
+                body,
+            ))
+        }
+        "PUT" => {
+            let version = if version == "1.1" {
+                HTTPVersion::HTTP11
+            } else {
+                HTTPVersion::HTTP10
+            };
+
+            let mut body: Option<String> = None;
+
+            if headers.contains_key("Content-Length") {
+                let mut data = String::new();
+                let content_length = headers
+                    .get("Content-Length")
+                    .expect("Content-Length does not exist");
+
+                let content_length = content_length
+                    .trim()
+                    .parse::<usize>()
+                    .expect("Unable to parse content length");
+
+                while data.len() < content_length {
+                    data.push_str(req_parts.next().unwrap());
+                }
+
+                body = Some(data);
+            }
+
+            Ok(Request::new(HTTPMethod::PUT, path, version, headers, body))
         }
         _ => Err(RequestError::HTTPMethodError),
     }

@@ -270,4 +270,17 @@ impl Server {
         let map = HashMap::from([(path.to_string(), handler)]);
         self.router.routes.insert(HTTPMethod::GET, map);
     }
+
+    pub fn post(&mut self, path: &str, handler: Handler) {
+        let map = HashMap::from([(path.to_string(), handler)]);
+        self.router.routes.insert(HTTPMethod::POST, map);
+    }
+    pub fn delete(&mut self, path: &str, handler: Handler) {
+        let map = HashMap::from([(path.to_string(), handler)]);
+        self.router.routes.insert(HTTPMethod::DELETE, map);
+    }
+    pub fn put(&mut self, path: &str, handler: Handler) {
+        let map = HashMap::from([(path.to_string(), handler)]);
+        self.router.routes.insert(HTTPMethod::PUT, map);
+    }
 }
